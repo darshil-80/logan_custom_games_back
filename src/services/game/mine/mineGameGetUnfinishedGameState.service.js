@@ -1,3 +1,4 @@
+import inMemoryDB from '../../../libs/inMemoryDb'
 import ServiceBase from '../../../libs/serviceBase'
 
 /**
@@ -7,25 +8,10 @@ import ServiceBase from '../../../libs/serviceBase'
  */
 export default class MineGameGetUnfinishedGameStateService extends ServiceBase {
   async run () {
-    const {
-      dbModels: {
-        User: UserModel,
-        MineGameBet: MineGameBetModel,
-        MineGamePlayState: MineGamePlayStateModel
-      },
-      auth: {
-        id: userId
-      },
-      sequelizeTransaction
-    } = this.context
-
     // Fetching user details
-    const user = await UserModel.findOne({
-      where: {
-        id: userId
-      },
-      transaction: sequelizeTransaction
-    })
+    const { userId } = this.args;
+
+    const user = inMemoryDB.get('users', userId)
 
     // Validations
     if (!user) {
@@ -34,30 +20,22 @@ export default class MineGameGetUnfinishedGameStateService extends ServiceBase {
     }
 
     // to check previous round is completed or not
-    const unfinishedGameBetDetails = await MineGameBetModel.findOne({
-      attributes: {
-        exclude: ['mineTiles', 'serverSeed', 'winningAmount']
-      },
-      where: {
-        userId,
-        result: null
-      },
-      include: [{
-        model: MineGamePlayStateModel,
-        as: 'playStates',
-        attributes: ['tile']
-      }],
-      order: [[{ model: MineGamePlayStateModel, as: 'playStates' }, 'id', 'ASC']],
-      transaction: sequelizeTransaction
-    })
+    const unfinishedGameBetDetails = inMemoryDB.get('mineGameBets', userId)
 
-    if (!unfinishedGameBetDetails) {
+    if (!unfinishedGameBetDetails || unfinishedGameBetDetails.result !== null) {
       return { hasUnfinishedGame: false }
     }
 
+    const unfinishedGameBet = {...unfinishedGameBetDetails}
+    delete unfinishedGameBet.mineTiles
+    delete unfinishedGameBet.serverSeed
+    delete unfinishedGameBet.winningAmount
+
+    unfinishedGameBet.playStates = unfinishedGameBet.playStates.map(playerState => {return {tile: playerState?.tile}})
+
     return {
       hasUnfinishedGame: true,
-      unfinishedGameBetDetails
+      unfinishedGameBetDetails: unfinishedGameBet
     }
   }
 }

@@ -38,18 +38,18 @@ export default class MineGameOpenTileService extends ServiceBase {
     }
 
     // Check playing state
-    const tileAlreadyOpen = inMemoryDB.get('mineGamePlayState', mineGameBet.id)
+    const tileAlreadyOpen = mineGameBet.playStates.find(playerState => playerState.tile === tile)
 
-    if (tileAlreadyOpen && tileAlreadyOpen.tile === tile) {
+    if (tileAlreadyOpen) {
       this.addError('MineTileAlreadyOpenedErrorType')
       return
     }
 
-    inMemoryDB.set('mineGamePlayState', mineGameBet.id, {
+    mineGameBet.playStates.push({
       betId: mineGameBet.id,
       tile
     })
-
+    
     if (!mineGameBet.mineTiles.includes(tile)) {
       return {
         mineTile: false
@@ -62,7 +62,8 @@ export default class MineGameOpenTileService extends ServiceBase {
       inMemoryDB.set('mineGameBets', userId, mineGameBet)
 
       const { serverSeedHash: nextServerSeedHash } = await generateServerSeedHash(userId)
-    
+      delete mineGameBet.mineTiles
+
       return { mineTile: true, ...mineGameBet, nextServerSeedHash }
     } catch (error) {
       throw new APIError({ name: 'Internal', description: error.message })

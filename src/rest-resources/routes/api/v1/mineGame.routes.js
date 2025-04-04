@@ -267,13 +267,11 @@ mineGameRoutes
   )
 
 // get-previous-round-state route
-// mineGameRoutes
-//   .route('/get-unfinished-bet-state').get(
-//     contextMiddleware(false),
-//     authenticationMiddleWare,
-//     MineGameController.getUnfinishedGameState,
-//     responseValidationMiddleware(getUnfinishedGameStateSchema)
-//   )
+mineGameRoutes
+  .route('/get-unfinished-bet-state').get(
+    MineGameController.getUnfinishedGameState,
+    responseValidationMiddleware()
+  )
 
 // // post-check-provable-fair route
 // mineGameRoutes

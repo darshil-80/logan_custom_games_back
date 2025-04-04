@@ -71,6 +71,7 @@ export default class MineGamePlaceAutoBetService extends ServiceBase {
           this.addError('NoPlacedBetFoundErrorType', 'no bet found')
           return
         }
+        delete mineGameBet.mineTiles
 
         const userWallet = user.wallet
 

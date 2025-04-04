@@ -35,9 +35,10 @@ export default class MineGameCashOutBetService extends ServiceBase {
       this.addError('NoPlacedBetFoundErrorType')
       return
     }
+    delete mineGameBet.mineTiles
 
     // Check playing state
-    const openedTileCount = inMemoryDB.getAll('mineGamePlayState').length
+    const openedTileCount = mineGameBet.playStates.length
 
     if (openedTileCount === 0) {
       this.addError('NoOpenedTileFoundErrorType')

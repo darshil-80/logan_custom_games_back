@@ -75,7 +75,8 @@ export default class MineGamePlaceBetService extends ServiceBase {
           minOdd: 1,
           maxOdd: 20,
           houseEdge: 4
-        }
+        },
+        playStates: []
       })
       userWallet.amount = minus(userWallet.amount, betAmount)
 
