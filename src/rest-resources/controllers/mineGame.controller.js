@@ -80,14 +80,14 @@ export default class MineGameController {
   //   }
   // }
 
-  // static async getUnfinishedGameState (req, res, next) {
-  //   try {
-  //     const { result, successful, errors } = await MineGameGetUnfinishedGameStateService.execute(req.body, req.context)
-  //     sendResponse({ req, res, next }, { result, successful, serviceErrors: errors })
-  //   } catch (error) {
-  //     next(error)
-  //   }
-  // }
+  static async getUnfinishedGameState (req, res, next) {
+    try {
+      const { result, successful, errors } = await MineGameGetUnfinishedGameStateService.execute({userId: req.headers.userid, ...req.body}, req.context)
+      sendResponse({ req, res, next }, { result, successful, serviceErrors: errors })
+    } catch (error) {
+      next(error)
+    }
+  }
 
   static async autoBet (req, res, next) {
     try {

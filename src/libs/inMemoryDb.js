@@ -5,8 +5,6 @@ class InMemoryDB {
       this.wallets = {}; // Mimics the Wallet table
       this.currencies = {}; // Mimics the Currency table
       this.mineGameBets = {}; // Mimics the MineGameBet table
-      this.mineGamePlayState = {}; // Mimics the mineGamePlayState table
-
     }
   
     // Set data for a given model
@@ -35,6 +33,44 @@ class InMemoryDB {
     findOne(modelName, query) {
       const id = query.where.id;
       return this.get(modelName, id);
+    }
+
+    // Delete data from a model by ID
+    delete(modelName, id) {
+        if (this[modelName] && this[modelName][id]) {
+        delete this[modelName][id];
+        console.log(`Deleted record with id ${id} from ${modelName}`);
+        } else {
+        console.log(`Record with id ${id} not found in ${modelName}`);
+        }
+    }
+
+    // Delete all records associated with a specific recordId within a specific model
+    deleteRecordsByRecordId(modelName, recordId) {
+        // Check if the specified model exists
+        if (this[modelName] && typeof this[modelName] === 'object') {
+            Object.keys(this[modelName]).forEach(id => {
+                const record = this[modelName][id];
+
+                // Check if the record contains the recordId and delete if found
+                if (record && record.recordId === recordId) {
+                    delete this[modelName][id];
+                    console.log(`Deleted record with id ${id} from ${modelName} (associated with recordId ${recordId})`);
+                }
+            });
+        } else {
+            console.log(`Model ${modelName} does not exist or is not a valid object.`);
+        }
+    }
+
+    // Delete all records from a specific model
+    deleteAll(modelName) {
+        if (this[modelName]) {
+        this[modelName] = {};  // Clear the model
+        console.log(`Deleted all records from ${modelName}`);
+        } else {
+        console.log(`${modelName} not found`);
+        }
     }
   }
   
