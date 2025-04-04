@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Document</title>
+  <script src="https://cdn.socket.io/4.5.0/socket.io.min.js">
+
+  </script>
+
+
+</head>
+
+<body>
+  <script>
+    const SOCKET_NAMESPACES = {
+      DEMO: '/demo',
+      // COMMON: '/common',
+      WALLET: '/wallet',
+      INTERNAL_CRASH_GAME: '/internal-crash-game',
+      CRASH_GAME: '/crash-game',
+      live_wins: '/live-wins',
+      ROLLER_COASTER_GAME: '/roller-coaster-game',
+      ANNOUNCEMENT: '/announcement'
+    }
+
+    const SOCKET_LISTENERS = {
+      WALLET_USER_WALLET_BALANCE: SOCKET_NAMESPACES.WALLET + '/userWalletBalance',
+      CRASH_GAME_ROUND_STARTED: SOCKET_NAMESPACES.CRASH_GAME + '/roundStarted',
+      CRASH_GAME_ROUND_STOPPED: SOCKET_NAMESPACES.CRASH_GAME + '/roundStopped',
+      CRASH_GAME_WAITING_TIMER: SOCKET_NAMESPACES.CRASH_GAME + '/waitingTimer',
+      CRASH_GAME_GRAPH_TIMER: SOCKET_NAMESPACES.CRASH_GAME + '/graphTimer',
+      CRASH_GAME_ROUND_BETTING_ON_HOLD: SOCKET_NAMESPACES.CRASH_GAME + '/roundBettingOnHold',
+      CRASH_GAME_PLACED_BETS: SOCKET_NAMESPACES.CRASH_GAME + '/placedBets',
+      LIVE_GAME_PLACED_BETS: SOCKET_NAMESPACES.live_wins + '/viewLiveWins',
+      ROLLER_COASTER_NUMBER: SOCKET_NAMESPACES.ROLLER_COASTER_GAME + '/number',
+      ROLLER_COASTER_RESTART_ROUND: SOCKET_NAMESPACES.ROLLER_COASTER_GAME + '/restartRound',
+      LIVE_ANNOUNCEMENT: SOCKET_NAMESPACES.ANNOUNCEMENT + '/liveAnnouncement',
+    }
+
+    a = io('ws://localhost:8004/internal-crash-game', {
+      transports: ['websocket'],
+      auth: {
+        basicToken: 'Basic dXNlcm5hbWU6cGFzc3dvcmQ='
+      }
+    })
+    b = io('ws://localhost:8004/crash-game', {
+      transport: ['websocket']
+    })
+
+    live_wins = io('ws://localhost:8004/live-wins', {
+      transport: ['websocket']
+    })
+
+    rollerCoasterGame = io('ws://localhost:8004/roller-coaster-game', {
+      transport: ['websocket']
+    })
+
+    announcement = io('ws://localhost:8004/announcement', {
+      transport: ['websocket']
+    })
+    // console.log("announcement",announcement)
+
+    // const demoSocket = io('ws://localhost:8080/demo', {
+    //   transports: ['polling', 'websocket'],
+    //   extraHeaders: {
+    //     "accept-language": "fr-FR" // WARN: this will be ignored in a browser
+    //   }
+    // })
+
+    // d = io('ws://localhost:8004/wallet', {
+    //   transport: ['websocket'],
+    //   auth: {
+    //     authorization: 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjEiLCJlbWFpbCI6InVzZXIwNkB5b3BtYWlsLmNvbSIsImlhdCI6MTY3MDk0NTQxNSwiZXhwIjoxNjcxMDMxODE1fQ.01fMZQJdXbU0_pUvtuRTJZff89rrs6pweJR4Fvh5Atg'
+    //   }
+    // })
+
+    // e = io('ws://localhost:8004/wallet', {
+    //   transport: ['websocket'],
+    //   auth: {
+    //     authorization: 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjMiLCJlbWFpbCI6InVzZXIwOEB5b3BtYWlsLmNvbSIsImlhdCI6MTY3MTAxNjUyOCwiZXhwIjoxNjcxMTAyOTI4fQ.y-vyj6R44XRwi8A0xqr7JJKzIoGrjmkCu1YrdAoo3EI'
+    //   }
+    // })
+
+    b.on(SOCKET_LISTENERS.CRASH_GAME_ROUND_STARTED, (data) => console.log(SOCKET_LISTENERS.CRASH_GAME_ROUND_STARTED, data))
+    b.on(SOCKET_LISTENERS.CRASH_GAME_ROUND_STOPPED, (data) => console.log(SOCKET_LISTENERS.CRASH_GAME_ROUND_STOPPED, data))
+    b.on(SOCKET_LISTENERS.CRASH_GAME_WAITING_TIMER, (data) => console.log(SOCKET_LISTENERS.CRASH_GAME_WAITING_TIMER, data))
+    b.on(SOCKET_LISTENERS.CRASH_GAME_GRAPH_TIMER, (data) => console.log(SOCKET_LISTENERS.CRASH_GAME_GRAPH_TIMER, data))
+    b.on(SOCKET_LISTENERS.CRASH_GAME_ROUND_BETTING_ON_HOLD, (data) => console.log(SOCKET_LISTENERS.CRASH_GAME_ROUND_BETTING_ON_HOLD, data))
+    b.on(SOCKET_LISTENERS.CRASH_GAME_PLACED_BETS, (data) => console.log(SOCKET_LISTENERS.CRASH_GAME_PLACED_BETS, data))
+    live_wins.on(SOCKET_LISTENERS.LIVE_GAME_PLACED_BETS, (data) => console.log( SOCKET_LISTENERS.LIVE_GAME_PLACED_BETS, data))
+    rollerCoasterGame.on(SOCKET_LISTENERS.ROLLER_COASTER_RESTART_ROUND, (data) => console.log( SOCKET_LISTENERS.ROLLER_COASTER_RESTART_ROUND, data))
+    rollerCoasterGame.on(SOCKET_LISTENERS.ROLLER_COASTER_NUMBER, (data) => console.log( SOCKET_LISTENERS.ROLLER_COASTER_NUMBER, data))
+    announcement.on(SOCKET_LISTENERS.LIVE_ANNOUNCEMENT, (data) => console.log('EEEEEEEEE', SOCKET_LISTENERS.LIVE_ANNOUNCEMENT, data))
+  </script>
+</body>
+
+</html>
