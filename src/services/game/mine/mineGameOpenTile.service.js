@@ -62,7 +62,6 @@ export default class MineGameOpenTileService extends ServiceBase {
       inMemoryDB.set('mineGameBets', userId, mineGameBet)
 
       const { serverSeedHash: nextServerSeedHash } = await generateServerSeedHash(userId)
-      delete mineGameBet.mineTiles
 
       return { mineTile: true, ...mineGameBet, nextServerSeedHash }
     } catch (error) {
