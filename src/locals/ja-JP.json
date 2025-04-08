@@ -123,5 +123,6 @@
 	"This tile has already been selected. Choose another tile.": "This tile has already been selected. Choose another tile.",
 	"The specified record was not found.": "The specified record was not found.",
 	"consoile is not defined": "consoile is not defined",
-	"The auto bet in the Mine Game is not completed.": "The auto bet in the Mine Game is not completed."
+	"The auto bet in the Mine Game is not completed.": "The auto bet in the Mine Game is not completed.",
+	"crashGameBet is not defined": "crashGameBet is not defined"
 }

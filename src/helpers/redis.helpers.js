@@ -53,3 +53,8 @@ export const getTTL = async (cacheKey) => {
 export const setDataWithoutExpiry = async (cacheKey, value) => {
   await redis.client.set(cacheKey, value)
 }
+
+export const removeAllData = async (cacheKeyPattern) => {
+  const allMatchingKeys = await redis.client.keys(cacheKeyPattern)
+  allMatchingKeys.length && await redis.client.del(allMatchingKeys)
+}

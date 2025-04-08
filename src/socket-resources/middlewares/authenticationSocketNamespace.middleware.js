@@ -6,7 +6,7 @@ export default async function authenticationSocketNamespaceMiddleWare (socket, n
   try {
     const { auth } = socket.handshake
 
-    socket.auth = inMemoryDB.get('users', auth.userid)
+    socket.auth = await inMemoryDB.get('users', auth.userid)
     next()
   } catch (err) {
     Logger.error('Error in authenticationSocketMiddleware', {

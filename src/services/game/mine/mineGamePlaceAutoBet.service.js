@@ -63,9 +63,9 @@ export default class MineGamePlaceAutoBetService extends ServiceBase {
       return cashedOutBet
     } catch (error) {
       if (placedBet) {
-        const user = inMemoryDB.get('users', userId)
+        const user = await inMemoryDB.get('users', userId)
 
-        const alreadyPlacedBet = inMemoryDB.get('mineGameBets', userId)
+        const alreadyPlacedBet = await inMemoryDB.get('mineGameBets', userId)
 
         if (!alreadyPlacedBet || alreadyPlacedBet.result !== null) {
           this.addError('NoPlacedBetFoundErrorType', 'no bet found')
@@ -80,7 +80,7 @@ export default class MineGamePlaceAutoBetService extends ServiceBase {
         alreadyPlacedBet.result = BET_RESULT.CANCELLED
 
         userWallet.amount = plus(userWallet.amount, betAmount)
-        inMemoryDB.set('users', userId, user)
+        await inMemoryDB.set('users', userId, user)
 
         WalletEmitter.emitUserWalletBalance({
           "amount": userWallet.amount,
@@ -101,7 +101,7 @@ export default class MineGamePlaceAutoBetService extends ServiceBase {
 
         alreadyPlacedBet.result = BET_RESULT.CANCELLED
 
-        inMemoryDB.set('mineGameBets', userId, alreadyPlacedBet)
+        await inMemoryDB.set('mineGameBets', userId, alreadyPlacedBet)
 
       }
       this.addError('MineGameAutoBetNotCompletedErrorType')

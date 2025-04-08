@@ -337,36 +337,38 @@ const getAllBetsSchemas = {
   }
 }
 // get-crash-game-status route
-crashGameRoutes
-  .route('/get-crash-game-status').get(
-    contextMiddleware(false),
-    CrashGameController.CrashGameGetStatus,
-    responseValidationMiddleware(getCrashGameGetStatusSchemas)
-  )
+// crashGameRoutes
+//   .route('/get-crash-game-status').get(
+//     contextMiddleware(false),
+//     CrashGameController.CrashGameGetStatus,
+//     responseValidationMiddleware(getCrashGameGetStatusSchemas)
+//   )
 
-// get-crash-game-round-detail route
-crashGameRoutes
-  .route('/get-crash-game-round-detail').get(
-    contextMiddleware(false),
-    CrashGameController.getCrashGameRoundDetail,
-    responseValidationMiddleware(getGetCrashGameRoundDetailSchemas)
-  )
+// // get-crash-game-round-detail route
+// crashGameRoutes
+//   .route('/get-crash-game-round-detail').get(
+//     contextMiddleware(false),
+//     CrashGameController.getCrashGameRoundDetail,
+//     responseValidationMiddleware(getGetCrashGameRoundDetailSchemas)
+//   )
+
+crashGameRoutes.get('/restart', CrashGameController.restartCrashGame)
 
 // get-crash-game-history route
 crashGameRoutes
   .route('/get-crash-game-history').get(
-    contextMiddleware(false),
-    requestValidationMiddleware(getGetCrashGameHistorySchemas),
+    // contextMiddleware(false),
+    // requestValidationMiddleware(getGetCrashGameHistorySchemas),
     CrashGameController.getCrashGameHistory,
-    responseValidationMiddleware(getGetCrashGameHistorySchemas)
+    responseValidationMiddleware()
   )
 
 // place-bet-crash-game route
 crashGameRoutes
   .route('/place-bet-crash-game').post(
-    contextMiddleware(true),
-    authenticationMiddleWare,
-    requestValidationMiddleware(postPlaceCrashGameBetSchemas),
+    // contextMiddleware(true),
+    // authenticationMiddleWare,
+    // requestValidationMiddleware(postPlaceCrashGameBetSchemas),
     CrashGameController.placeBetCrashGame,
     responseValidationMiddleware()
   )
@@ -375,8 +377,8 @@ crashGameRoutes
 crashGameRoutes
   .route('/cancel-bet-crash-game')
   .post(
-    contextMiddleware(true),
-    authenticationMiddleWare,
+    // contextMiddleware(true),
+    // authenticationMiddleWare,
     CrashGameController.cancelBetCrashGame,
     responseValidationMiddleware()
   )
@@ -385,68 +387,68 @@ crashGameRoutes
 crashGameRoutes
   .route('/player-escape-crashGame')
   .post(
-    contextMiddleware(true),
-    authenticationMiddleWare,
+    // contextMiddleware(true),
+    // authenticationMiddleWare,
     CrashGameController.playerEscapeCrashGame,
     responseValidationMiddleware()
   )
 
-// get-my-bets route
-crashGameRoutes
-  .route('/my-bets')
-  .get(
-    contextMiddleware(false),
-    authenticationMiddleWare,
-    CrashGameController.myBets,
-    responseValidationMiddleware(getMyBetsSchemas)
-  )
+// // get-my-bets route
+// crashGameRoutes
+//   .route('/my-bets')
+//   .get(
+//     contextMiddleware(false),
+//     authenticationMiddleWare,
+//     CrashGameController.myBets,
+//     responseValidationMiddleware(getMyBetsSchemas)
+//   )
 
-crashGameRoutes
-  .route('/top-bets')
-  .get(
-    contextMiddleware(false),
-    requestValidationMiddleware(getTopBetsSchemas),
-    CrashGameController.topBets,
-    responseValidationMiddleware(getTopBetsSchemas)
-  )
+// crashGameRoutes
+//   .route('/top-bets')
+//   .get(
+//     contextMiddleware(false),
+//     requestValidationMiddleware(getTopBetsSchemas),
+//     CrashGameController.topBets,
+//     responseValidationMiddleware(getTopBetsSchemas)
+//   )
 
-crashGameRoutes
-  .route('/all-bets')
-  .get(
-    contextMiddleware(false),
-    CrashGameController.allBets,
-    responseValidationMiddleware(getAllBetsSchemas)
-  )
+// crashGameRoutes
+//   .route('/all-bets')
+//   .get(
+//     contextMiddleware(false),
+//     CrashGameController.allBets,
+//     responseValidationMiddleware(getAllBetsSchemas)
+//   )
 
-crashGameRoutes
-  .route('/list-uplifting-words')
-  .get(
-    contextMiddleware(false),
-    CrashGameController.getAllUpliftingWords,
-    responseValidationMiddleware()
-  )
-// getRoundAllBets
-crashGameRoutes
-  .route('/all-placed-bets')
-  .get(
-    contextMiddleware(false),
-    CrashGameController.getAllPlacedBets,
-    responseValidationMiddleware()
-  )
+// crashGameRoutes
+//   .route('/list-uplifting-words')
+//   .get(
+//     contextMiddleware(false),
+//     CrashGameController.getAllUpliftingWords,
+//     responseValidationMiddleware()
+//   )
+// // getRoundAllBets
+// crashGameRoutes
+//   .route('/all-placed-bets')
+//   .get(
+//     contextMiddleware(false),
+//     CrashGameController.getAllPlacedBets,
+//     responseValidationMiddleware()
+//   )
 
-crashGameRoutes
-  .route('/check-provable-fair')
-  .post(
-    contextMiddleware(true),
-    CrashGameController.checkProvableFair,
-    responseValidationMiddleware()
-  )
+// crashGameRoutes
+//   .route('/check-provable-fair')
+//   .post(
+//     contextMiddleware(true),
+//     CrashGameController.checkProvableFair,
+//     responseValidationMiddleware()
+//   )
 
-crashGameRoutes
-  .route('/get-all-round-placed-bets')
-  .get(
-    contextMiddleware(false),
-    CrashGameController.getAllRoundPlacedBets,
-    responseValidationMiddleware()
-  )
+// crashGameRoutes
+//   .route('/get-all-round-placed-bets')
+//   .get(
+//     contextMiddleware(false),
+//     CrashGameController.getAllRoundPlacedBets,
+//     responseValidationMiddleware()
+//   )
 export default crashGameRoutes

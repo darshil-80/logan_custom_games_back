@@ -28,7 +28,7 @@ export default class MineGamePlaceBetService extends ServiceBase {
     }
 
     // Fetching user details
-    let user = inMemoryDB.get('users', userId)
+    let user = await inMemoryDB.get('users', userId)
     // add user if not exists
     if (!user) {
       this.addError('UserNotExistsErrorType')
@@ -60,7 +60,7 @@ export default class MineGamePlaceBetService extends ServiceBase {
     // create debit transaction
 
     try {
-      inMemoryDB.set('mineGameBets', userId, {
+      await inMemoryDB.set('mineGameBets', userId, {
         id: uuidv4(),
         userId: userId,
         mineCount,
@@ -81,7 +81,7 @@ export default class MineGamePlaceBetService extends ServiceBase {
       userWallet.amount = minus(userWallet.amount, betAmount)
 
       // Save the updated wallet back to in-memory DB
-      inMemoryDB.set('users', userId, user)
+      await inMemoryDB.set('users', userId, user)
 
       WalletEmitter.emitUserWalletBalance({
         "amount": userWallet.amount,

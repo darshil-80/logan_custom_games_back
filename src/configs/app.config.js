@@ -159,6 +159,27 @@ const config = convict({
     }
   },
 
+  queue_worker_redis_db: {
+    password: {
+      doc: 'Redis Database password',
+      format: '*',
+      default: '',
+      env: 'QUEUE_WORKER_REDIS_DB_PASSWORD'
+    },
+    host: {
+      doc: 'Redis DB host',
+      format: String,
+      default: '127.0.0.1',
+      env: 'QUEUE_WORKER_REDIS_DB_HOST'
+    },
+    port: {
+      doc: 'Redis DB PORT',
+      format: 'port',
+      default: 6379,
+      env: 'QUEUE_WORKER_REDIS_DB_PORT'
+    }
+  },
+
   log_level: {
     doc: 'level of logs to show',
     format: String,

@@ -22,7 +22,7 @@ export default class MineGameOpenTileService extends ServiceBase {
     }
 
     // Fetching user details
-    const user = inMemoryDB.get('users', userId)
+    const user = await inMemoryDB.get('users', userId)
 
     // Validations
     if (!user) {
@@ -30,7 +30,7 @@ export default class MineGameOpenTileService extends ServiceBase {
       return
     }
 
-    const mineGameBet = inMemoryDB.get('mineGameBets', userId)
+    const mineGameBet = await inMemoryDB.get('mineGameBets', userId)
 
     if (!mineGameBet) {
       this.addError('NoPlacedBetFoundErrorType')
@@ -59,7 +59,7 @@ export default class MineGameOpenTileService extends ServiceBase {
     try {
       mineGameBet.result = BET_RESULT.LOST
 
-      inMemoryDB.set('mineGameBets', userId, mineGameBet)
+      await inMemoryDB.set('mineGameBets', userId, mineGameBet)
 
       const { serverSeedHash: nextServerSeedHash } = await generateServerSeedHash(userId)
 

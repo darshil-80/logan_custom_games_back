@@ -46,7 +46,6 @@ export default class HiLoGameCalculateOddsForBet extends ServiceBase {
       return odds
     }, 1.00)
 
-    console.log(odds)
     return odds || 1.00
   }
 }

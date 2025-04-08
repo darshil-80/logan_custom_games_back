@@ -11,7 +11,7 @@ export default class MineGameGetUnfinishedGameStateService extends ServiceBase {
     // Fetching user details
     const { userId } = this.args;
 
-    const user = inMemoryDB.get('users', userId)
+    const user = await inMemoryDB.get('users', userId)
 
     // Validations
     if (!user) {
@@ -20,7 +20,7 @@ export default class MineGameGetUnfinishedGameStateService extends ServiceBase {
     }
 
     // to check previous round is completed or not
-    const unfinishedGameBetDetails = inMemoryDB.get('mineGameBets', userId)
+    const unfinishedGameBetDetails = await inMemoryDB.get('mineGameBets', userId)
 
     if (!unfinishedGameBetDetails || unfinishedGameBetDetails.result !== null) {
       return { hasUnfinishedGame: false }
