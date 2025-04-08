@@ -15,7 +15,7 @@ const v1Router = express.Router()
 
 // v1Router.use('/black-jack-game', blackJackGameRoutes)
 // v1Router.use('/common-game', commonGameRoutes)
-// v1Router.use('/crash-game', crashGameRoutes)
+v1Router.use('/crash-game', crashGameRoutes)
 // v1Router.use('/hi-lo-game', hiLoGameRoutes)
 v1Router.use('/mine-game', mineGameRoutes)
 // v1Router.use('/plinko-game', plinkoGameRoutes)

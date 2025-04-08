@@ -21,7 +21,7 @@ export default class MineGameCashOutBetService extends ServiceBase {
   async run () {
     const{ userId } = this.args
     // Fetching user details
-    const user = inMemoryDB.get('users', userId)
+    const user = await inMemoryDB.get('users', userId)
 
     // Validations
     if (!user) {
@@ -29,7 +29,7 @@ export default class MineGameCashOutBetService extends ServiceBase {
       return
     }
 
-    const mineGameBet = inMemoryDB.get('mineGameBets', userId)
+    const mineGameBet = await inMemoryDB.get('mineGameBets', userId)
 
     if (!mineGameBet) {
       this.addError('NoPlacedBetFoundErrorType')
@@ -44,7 +44,7 @@ export default class MineGameCashOutBetService extends ServiceBase {
       return
     }
 
-    const gameSettings = inMemoryDB.get('gameSettings', 3)
+    const gameSettings = await inMemoryDB.get('gameSettings', 3)
 
     try {
       const odds = calculateMineGameOdd({ mineGameBet, openedTileCount, gameSettings, MAX_TILE_COUNT })
@@ -52,11 +52,11 @@ export default class MineGameCashOutBetService extends ServiceBase {
       mineGameBet.result = BET_RESULT.WON
       mineGameBet.winningAmount = times(odds, mineGameBet.betAmount)
 
-      inMemoryDB.set('mineGameBets', userId, mineGameBet)
+      await inMemoryDB.set('mineGameBets', userId, mineGameBet)
 
       const userWallet = user.wallet
       userWallet.amount = plus(userWallet.amount, mineGameBet.winningAmount)
-      inMemoryDB.set('users', userId, user)
+      await inMemoryDB.set('users', userId, user)
 
       WalletEmitter.emitUserWalletBalance({
         "amount": userWallet.amount,

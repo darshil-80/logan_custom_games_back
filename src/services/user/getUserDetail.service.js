@@ -10,10 +10,10 @@ import ServiceBase from '../../libs/serviceBase'
 export default class GetUserDetailService extends ServiceBase {
   async run () {
     const userId = this.args.userId
-    let user = inMemoryDB.get('users', userId);
+    let user = await inMemoryDB.get('users', userId);
     
     if (!user) {
-      inMemoryDB.set('users', userId, {
+      await inMemoryDB.set('users', userId, {
         id: userId,
         wallet: {
           "amount": 1000,
@@ -28,7 +28,7 @@ export default class GetUserDetailService extends ServiceBase {
         }
       })
 
-      user = inMemoryDB.get('users', userId);
+      user = await inMemoryDB.get('users', userId);
 
       generateServerSeedHash(userId)
     }

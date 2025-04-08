@@ -1,5 +1,5 @@
-import { Sequelize } from '../../../db/models'
 import { BET_RESULT } from '../../../libs/constants'
+import inMemoryDB from '../../../libs/inMemoryDb'
 import ServiceBase from '../../../libs/serviceBase'
 
 /**
@@ -11,35 +11,13 @@ import ServiceBase from '../../../libs/serviceBase'
  */
 export default class CrashGameGetAllPlacedBetsService extends ServiceBase {
   async run () {
-    const {
-      dbModels: {
-        CrashGameBet: CrashGameBetModel,
-        User: UserModel,
-        RankingLevel: RankingLevelModel
-      },
-      sequelizeTransaction
-    } = this.context
-
-    const whereCondition = {
-      roundId: this.args.roundId,
-      result: { [Sequelize.Op.or]: [null, BET_RESULT.LOST, BET_RESULT.WON] }
-    }
-
-    const bets = await CrashGameBetModel.findAll({
-      where: whereCondition,
-      include: {
-        model: UserModel,
-        as: 'user',
-        include: {
-          model: RankingLevelModel,
-          as: 'userRank'
-        }
-      },
-      transaction: sequelizeTransaction
+    const gameBets = await inMemoryDB.findAllByField('crashGameBets', 'roundId', this.args.roundId)
+    const bets = gameBets.filter(bet => {
+      if([null, BET_RESULT.LOST, BET_RESULT.WON].includes(bet.result)) {
+        return bet
+      }
     })
 
-    const jsonBets = bets.map(bet => bet?.toJSON())
-
-    return { bets: jsonBets }
+    return bets
   }
 }

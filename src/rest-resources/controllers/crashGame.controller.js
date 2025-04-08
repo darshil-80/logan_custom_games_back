@@ -1,8 +1,6 @@
 import CrashGameCancelBetService from '../../services/game/crash/crashGameCancelBet.service'
 import CrashGameGetAllPlacedBetsService from '../../services/game/crash/crashGameGetAllPlacedBets.service'
 import CrashGameGetHistoryService from '../../services/game/crash/crashGameGetHistory.service'
-import CrashGameGetRoundDetailService from '../../services/game/crash/crashGameGetRoundDetail.service'
-import CrashGameGetStatusService from '../../services/game/crash/crashGameGetStatus.service'
 import CrashGamePlaceBetService from '../../services/game/crash/crashGamePlaceBet.service'
 import CrashGamePlayerEscapeService from '../../services/game/crash/crashGamePlayerEscape.service'
 import CrashGameGetAllBetsService from '../../services/game/crash/crashGameGetAllBets.service'
@@ -16,6 +14,8 @@ import { BetAlreadyInProgressErrorType } from '../../libs/errorTypes'
 import GetAllUpliftingWordsService from '../../services/upliftingWords/getAllUpliftingWords.service'
 import CheckProvableFairService from '../../services/game/crash/crashGameCheckProvableFair.service'
 import CrashGameGetAllRoundPlacedBetsService from '../../services/game/crash/crashGameGetAllRoundPlacedBets.service'
+import { crashGameQueue, JOB_RESTART_CRASH_GAME } from '../../queues/crashGame.queue'
+import inMemoryDB from '../../libs/inMemoryDb'
 
 /**
  * CrashGame Controller for handling all the request of /crashGame path
@@ -24,23 +24,23 @@ import CrashGameGetAllRoundPlacedBetsService from '../../services/game/crash/cra
  * @class CrashGameController
  */
 export default class CrashGameController {
-  static async CrashGameGetStatus (req, res, next) {
-    try {
-      const { result, successful, errors } = await CrashGameGetStatusService.execute(req.query, req.context)
-      sendResponse({ req, res, next }, { result, successful, serviceErrors: errors })
-    } catch (error) {
-      next(error)
-    }
-  }
+  // static async CrashGameGetStatus (req, res, next) {
+  //   try {
+  //     const { result, successful, errors } = await CrashGameGetStatusService.execute(req.query, req.context)
+  //     sendResponse({ req, res, next }, { result, successful, serviceErrors: errors })
+  //   } catch (error) {
+  //     next(error)
+  //   }
+  // }
 
-  static async getCrashGameRoundDetail (req, res, next) {
-    try {
-      const { result, successful, errors } = await CrashGameGetRoundDetailService.execute(req.query, req.context)
-      sendResponse({ req, res, next }, { result, successful, serviceErrors: errors })
-    } catch (error) {
-      next(error)
-    }
-  }
+  // static async getCrashGameRoundDetail (req, res, next) {
+  //   try {
+  //     const { result, successful, errors } = await CrashGameGetRoundDetailService.execute(req.query, req.context)
+  //     sendResponse({ req, res, next }, { result, successful, serviceErrors: errors })
+  //   } catch (error) {
+  //     next(error)
+  //   }
+  // }
 
   static async getCrashGameHistory (req, res, next) {
     try {
@@ -52,7 +52,11 @@ export default class CrashGameController {
   }
 
   static async placeBetCrashGame (req, res, next) {
-    const cacheTokenKey = `Bet-${DEFAULT_GAME_ID.CRASH}-${req.context.auth.id}`
+    console.log("allusersss", await inMemoryDB.getAll('users'))
+    const user = await inMemoryDB.get('users', req.headers.userid)
+    console.log("useruser", user, req.headers);
+
+    const cacheTokenKey = `Bet-${DEFAULT_GAME_ID.CRASH}-${user.id}`
 
     try {
       const alreadyPlacedBet = await getCachedData(cacheTokenKey)
@@ -64,7 +68,7 @@ export default class CrashGameController {
 
       await setData(cacheTokenKey, 'true', 10)
 
-      const { result, successful, errors } = await CrashGamePlaceBetService.execute(req.body, req.context)
+      const { result, successful, errors } = await CrashGamePlaceBetService.execute({userId: req.headers.userid, ...req.body}, req.context)
 
       if (!successful) {
         await removeData(cacheTokenKey)
@@ -88,16 +92,17 @@ export default class CrashGameController {
 
   static async cancelBetCrashGame (req, res, next) {
     try {
-      const { result, successful, errors } = await CrashGameCancelBetService.execute(req.query, req.context)
+      const user = await inMemoryDB.get('users', req.headers.userid)
+      const { result, successful, errors } = await CrashGameCancelBetService.execute({userId: req.headers.userid, ...req.query}, req.context)
 
       if (!successful) {
         return
       }
 
-      const cacheTokenKey = `Bet-${DEFAULT_GAME_ID.CRASH}-${req.context.auth.id}`
+      const cacheTokenKey = `Bet-${DEFAULT_GAME_ID.CRASH}-${user.id}`
       await removeData(cacheTokenKey)
 
-      const placedBets = await CrashGameGetAllPlacedBetsService.execute({ roundId: result }, req.context)
+      const placedBets = await CrashGameGetAllPlacedBetsService.execute({ roundId: result.roundId }, req.context)
 
       if (placedBets.failed) {
         return
@@ -113,7 +118,9 @@ export default class CrashGameController {
 
   static async playerEscapeCrashGame (req, res, next) {
     try {
-      const { result, successful, errors } = await CrashGamePlayerEscapeService.execute(req.query, req.context)
+      const { result, successful, errors } = await CrashGamePlayerEscapeService.execute({userId: req.headers.userid, ...req.query}, req.context)
+      console.log("innnnnnnnnnnnnnnnnnn", result)
+
       if (!successful) {
         return
       }
@@ -231,5 +238,21 @@ export default class CrashGameController {
     } catch (error) {
       next(error)
     }
+  }
+
+  /**
+ *
+ *
+ * @static
+ * @param {object} req - object contains all the request params sent from the client
+ * @param {object} res - object contains all the response params sent to the client
+ * @param {function} next - function to execute next middleware
+ * @memberof CrashGameController
+ */
+  static restartCrashGame (req, res, next) {
+    crashGameQueue.add(JOB_RESTART_CRASH_GAME, {
+      priority: 1
+    })
+    res.sendStatus(200)
   }
 }
