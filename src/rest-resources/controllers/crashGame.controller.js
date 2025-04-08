@@ -52,7 +52,6 @@ export default class CrashGameController {
   }
 
   static async placeBetCrashGame (req, res, next) {
-    console.log("allusersss", await inMemoryDB.getAll('users'))
     const user = await inMemoryDB.get('users', req.headers.userid)
     console.log("useruser", user, req.headers);
 
@@ -119,7 +118,6 @@ export default class CrashGameController {
   static async playerEscapeCrashGame (req, res, next) {
     try {
       const { result, successful, errors } = await CrashGamePlayerEscapeService.execute({userId: req.headers.userid, ...req.query}, req.context)
-      console.log("innnnnnnnnnnnnnnnnnn", result)
 
       if (!successful) {
         return
