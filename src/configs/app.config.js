@@ -156,6 +156,12 @@ const config = convict({
       format: 'port',
       default: 6379,
       env: 'REDIS_DB_PORT'
+    },
+    user: {
+      doc: 'Redis DB user',
+      format: String,
+      default: 'default',
+      env: 'REDIS_DB_USER'
     }
   },
 
@@ -177,6 +183,12 @@ const config = convict({
       format: 'port',
       default: 6379,
       env: 'QUEUE_WORKER_REDIS_DB_PORT'
+    },
+    user: {
+      doc: 'Redis DB user',
+      format: String,
+      default: 'default',
+      env: 'QUEUE_WORKER_REDIS_DB_USER'
     }
   },
 
