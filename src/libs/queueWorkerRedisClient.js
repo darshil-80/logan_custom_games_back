@@ -19,14 +19,16 @@
 import Redis from 'ioredis';
 import config from '../configs/app.config';
 
-const connection = {
-  host: config.get('queue_worker_redis_db.host'),
-  port: config.get('queue_worker_redis_db.port'),
-  password: config.get('queue_worker_redis_db.password'),
-  tls: {}, // important for rediss://
-  maxRetriesPerRequest: null,
-  enableReadyCheck: false
-}
+// const connection = {
+//   host: config.get('queue_worker_redis_db.host'),
+//   port: config.get('queue_worker_redis_db.port'),
+//   password: config.get('queue_worker_redis_db.password'),
+//   tls: {}, // important for rediss://
+//   maxRetriesPerRequest: null,
+//   enableReadyCheck: false
+// }
+
+const connection = "redis://red-cvr488uuk2gs73c83180:6379"
 
 let redisClientInstance = null;
 let publisherClientInstance = null;
