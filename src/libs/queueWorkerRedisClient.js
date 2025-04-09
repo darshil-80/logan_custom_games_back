@@ -31,15 +31,18 @@ import config from '../configs/app.config';
 
 const connection = "redis://red-cvr488uuk2gs73c83180:6379"
 
+// Shared options
+const redisOptions = {
+  enableReadyCheck: false,
+  maxRetriesPerRequest: null,
+};
+
 let redisClientInstance = null;
 let publisherClientInstance = null;
 let subscriberClientInstance = null;
 
 function createRedisClient() {
-  return new Redis(connection, {
-    enableReadyCheck: false,          // or true depending on your needs
-    maxRetriesPerRequest: null,       // null disables retry limit
-  });
+  return new Redis(connection, redisOptions);
 }
 
 if (!redisClientInstance) redisClientInstance = createRedisClient();

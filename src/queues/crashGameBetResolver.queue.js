@@ -10,7 +10,7 @@ const opts = {
       case 'subscriber':
         return queueWorkerRedisClient.publisherClient
       default:
-        return new Redis(opts)
+        return new Redis(opts, redisOptions)
     }
   },
   redis: queueWorkerRedisClient.connection,
