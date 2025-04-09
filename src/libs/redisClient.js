@@ -19,15 +19,13 @@
 import Redis from 'ioredis';
 import config from '../configs/app.config';
 
-// const connection = {
-//   host: config.get('redis_db.host'),
-//   port: config.get('redis_db.port'),
-//   password: config.get('redis_db.password'),
-//   tls: {}, // important for rediss://
-// }
-
-const connection = "redis://red-cvr488uuk2gs73c83180:6379"
-
+const connection = {
+  host: config.get('redis_db.host'),
+  port: config.get('redis_db.port'),
+  username: config.get('redis_db.user'),
+  password: config.get('redis_db.password'),
+  tls: {}, // important for rediss://
+}
 
 let redisClientInstance = null;
 let publisherClientInstance = null;
