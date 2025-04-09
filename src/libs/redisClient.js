@@ -19,16 +19,19 @@
 import Redis from 'ioredis';
 import config from '../configs/app.config';
 
+const connection = {
+  host: config.get('redis_db.host'),
+  port: config.get('redis_db.port'),
+  password: config.get('redis_db.password'),
+  tls: {}, // important for rediss://
+}
+
 let redisClientInstance = null;
 let publisherClientInstance = null;
 let subscriberClientInstance = null;
 
 function createRedisClient() {
-  return new Redis({
-    host: config.get('redis_db.host'),
-    port: config.get('redis_db.port'),
-    password: config.get('redis_db.password'),
-  });
+  return new Redis(connection);
 }
 
 if (!redisClientInstance) redisClientInstance = createRedisClient();
@@ -36,7 +39,7 @@ if (!publisherClientInstance) publisherClientInstance = createRedisClient();
 if (!subscriberClientInstance) subscriberClientInstance = createRedisClient();
 
 export default {
-  // connection,
+  connection,
   publisherClient: publisherClientInstance,
   subscriberClient: subscriberClientInstance,
   client: redisClientInstance
