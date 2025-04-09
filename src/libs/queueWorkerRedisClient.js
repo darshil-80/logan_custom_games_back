@@ -36,7 +36,10 @@ let publisherClientInstance = null;
 let subscriberClientInstance = null;
 
 function createRedisClient() {
-  return new Redis(connection);
+  return new Redis(connection, {
+    enableReadyCheck: false,          // or true depending on your needs
+    maxRetriesPerRequest: null,       // null disables retry limit
+  });
 }
 
 if (!redisClientInstance) redisClientInstance = createRedisClient();
