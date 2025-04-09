@@ -2,6 +2,13 @@ import Bull from 'bull'
 import Redis from 'ioredis'
 import queueWorkerRedisClient from '../libs/queueWorkerRedisClient'
 
+// Shared options
+const redisOptions = {
+  enableReadyCheck: false,
+  maxRetriesPerRequest: null,
+};
+
+
 const opts = {
   createClient: function (type, opts) {
     switch (type) {
