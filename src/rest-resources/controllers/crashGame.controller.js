@@ -53,8 +53,12 @@ export default class CrashGameController {
 
   static async placeBetCrashGame (req, res, next) {
     const user = await inMemoryDB.get('users', req.headers.userid)
-    console.log("useruser", user, req.headers);
-
+    
+    if (!user) {
+      console.error('Error: User not exists!')
+      next('UserNotExistsErrorType')
+      return
+    }
     const cacheTokenKey = `Bet-${DEFAULT_GAME_ID.CRASH}-${user.id}`
 
     try {

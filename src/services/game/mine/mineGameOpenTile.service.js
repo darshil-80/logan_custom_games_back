@@ -29,9 +29,9 @@ export default class MineGameOpenTileService extends ServiceBase {
       this.addError('UserNotExistsErrorType')
       return
     }
-
+    
     const mineGameBet = await inMemoryDB.get('mineGameBets', userId)
-
+    
     if (!mineGameBet) {
       this.addError('NoPlacedBetFoundErrorType')
       return
@@ -50,6 +50,7 @@ export default class MineGameOpenTileService extends ServiceBase {
       tile
     })
     
+    await inMemoryDB.set('mineGameBets', userId, mineGameBet)
     if (!mineGameBet.mineTiles.includes(tile)) {
       return {
         mineTile: false
