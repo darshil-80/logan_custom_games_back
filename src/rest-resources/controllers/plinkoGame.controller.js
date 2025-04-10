@@ -22,7 +22,7 @@ export default class PlinkoGameController {
 
   static async placeBet (req, res, next) {
     try {
-      const { result, successful, errors } = await PlinkoGamePlaceBetService.execute(req.body, req.context)
+      const { result, successful, errors } = await PlinkoGamePlaceBetService.execute({userId: req.headers.userid, ...req.body}, req.context)
       sendResponse({ req, res, next }, { result, successful, serviceErrors: errors })
     } catch (error) {
       next(error)
@@ -31,7 +31,7 @@ export default class PlinkoGameController {
 
   static async postLightningBoardDetails (req, res, next) {
     try {
-      const { result, successful, errors } = await PlinkoGameLightningBoardDetails.execute(req.body, req.context)
+      const { result, successful, errors } = await PlinkoGameLightningBoardDetails.execute({ userId: req.headers.userid, ...req.body }, req.context)
       sendResponse({ req, res, next }, { result, successful, serviceErrors: errors })
     } catch (error) {
       next(error)

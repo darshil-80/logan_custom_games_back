@@ -2,36 +2,17 @@ import { minus, plus, times } from 'number-precision'
 import APIError from '../../../errors/api.error'
 import { generateServerSeedHash } from '../../../helpers/encryption.helpers'
 import { getCachedData } from '../../../helpers/redis.helpers'
-import ajv from '../../../libs/ajv'
 import { DEFAULT_GAME_ID, BET_RESULT } from '../../../libs/constants'
 import ServiceBase from '../../../libs/serviceBase'
 import WalletEmitter from '../../../socket-resources/emitters/wallet.emitter'
 import { countOnes } from '../../../utils/math.utils'
 import { getServerSeedCacheKey } from '../../../utils/user.utils'
-import CreateCreditTransactionService from '../common/createCreditTransaction.service'
-import CreateDebitTransactionService from '../common/createDebitTransaction.service'
 import GameSettingsService from '../common/gameSettings.service'
 import PlinkoGameGenerateResultService from './plinkoGameGenerateResult.service'
 import PlinkoGameLightningBoardDetails from './plinkoGameLightningBoardDetails.service'
 import { getResultingBetMultiplierByBallTrajectory } from '../../../utils/game.utils'
-import { v4 as uuid } from 'uuid'
-import UpdateRankingLevelService from '../../bonus/updateRankingLevel.service'
-import HandleBonusWageringService from '../../bonus/handleBonusWagering.service'
-
-const schema = {
-  type: 'object',
-  properties: {
-    numberOfRows: { $ref: '/plinkoGameBet.json#/properties/numberOfRows' },
-    riskLevel: { $ref: '/plinkoGameBet.json#/properties/riskLevel' },
-    betAmount: { $ref: '/plinkoGameBet.json#/properties/betAmount' },
-    clientSeed: { $ref: '/plinkoGameBet.json#/properties/clientSeed' },
-    currencyId: { $ref: '/plinkoGameBet.json#/properties/currencyId' },
-    isLightningMode: { $ref: '/plinkoGameBet.json#/properties/isLightningMode' },
-    demo: { $ref: '/plinkoGameBet.json#/properties/demo' },
-    demoAmount: { $ref: '/plinkoGameBet.json#/properties/demoAmount' }
-  },
-  required: ['numberOfRows', 'riskLevel', 'clientSeed', 'betAmount', 'isLightningMode', 'currencyId', 'demo']
-}
+import inMemoryDB from '../../../libs/inMemoryDb'
+import { v4 as uuidv4 } from 'uuid'
 
 const FIXED_ODDS = {
   8: [[5.6, 2.1, 1.1, 1, 0.5, 1, 1.1, 2.1, 5.6], [13, 3, 1.3, 0.7, 0.4, 0.7, 1.3, 3, 13], [29, 4, 1.5, 0.3, 0.2, 0.3, 1.5, 4, 29]],
@@ -45,8 +26,6 @@ const FIXED_ODDS = {
   16: [[16, 9, 2, 1.4, 1.4, 1.2, 1.1, 1, 0.5, 1, 1.1, 1.2, 1.4, 1.4, 2, 9, 16], [110, 41, 10, 5, 3, 1.5, 1, 0.5, 0.3, 0.5, 1, 1.5, 3, 5, 10, 41, 110], [1000, 130, 26, 9, 4, 2, 0.2, 0.2, 0.2, 0.2, 0.2, 2, 4, 9, 26, 130, 1000]]
 }
 
-const constraints = ajv.compile(schema)
-
 /**
  *
  *
@@ -55,98 +34,13 @@ const constraints = ajv.compile(schema)
  * @extends {ServiceBase}
  */
 export default class PlinkoGamePlaceBetService extends ServiceBase {
-  get constrains () {
-    return constraints
-  }
-
   async run () {
-    const { riskLevel, numberOfRows, betAmount, clientSeed, isLightningMode, currencyId, demo } = this.args
+    const { riskLevel, numberOfRows, betAmount, clientSeed, isLightningMode, currencyId, demo, userId } = this.args
 
     const { lightningBoardDetails } = await PlinkoGameLightningBoardDetails.run({}, this.context)
 
-    if (demo) {
-      let { demoAmount } = this.args
-      if (!demoAmount) demoAmount = 3000
-      if (+betAmount > +demoAmount) return this.addError('NotEnoughBalanceErrorType', `not enough balance walletAmount ${demoAmount} betAmount ${betAmount}`)
-
-      const _serverSeed = Math.random().toString(36).substring(2, 12)
-      const plinkoGameResult = await PlinkoGameGenerateResultService.run({ serverSeed: _serverSeed, clientSeed, numberOfRows })
-
-      const resultingMultiplier = getResultingBetMultiplierByBallTrajectory(lightningBoardDetails.betMultipliers, plinkoGameResult)
-
-      let winningAmount = 0
-      let betResult = BET_RESULT.LOST
-      const ones = countOnes(plinkoGameResult)
-
-      // Demo Formula logic for probability generation
-      // const probability = combination(numberOfRows, ones) * (0.5 ** numberOfRows)
-
-      if (isLightningMode) {
-        const odds = lightningBoardDetails.payouts?.[ones]
-        const netMultiplier = times(odds, resultingMultiplier)
-        betResult = netMultiplier >= 1 ? BET_RESULT.WON : BET_RESULT.LOST
-        winningAmount = times(betAmount, netMultiplier)
-      } else {
-        const odds = FIXED_ODDS[numberOfRows][(riskLevel - 1)][ones]
-        betResult = odds >= 1 ? BET_RESULT.WON : BET_RESULT.LOST
-        winningAmount = times(betAmount, odds)
-      }
-
-      let balance = minus(demoAmount, betAmount)
-
-      if (winningAmount !== 0) {
-        balance = plus(balance, winningAmount)
-      }
-
-      return {
-        id: uuid(),
-        numberOfRows,
-        riskLevel,
-        dropDetails: plinkoGameResult,
-        winningSlot: ones,
-        betAmount: betAmount,
-        currencyId,
-        winningAmount: winningAmount,
-        clientSeed: clientSeed,
-        serverSeed: _serverSeed,
-        result: betResult,
-        demo: true,
-        demoAmount: balance
-      }
-    }
-
-    const {
-      dbModels: {
-        User: UserModel,
-        PlinkoGameBet: PlinkoGameBetModel,
-        Wallet: WalletModel,
-        Currency: CurrencyModel
-      },
-      sequelizeTransaction,
-      auth: {
-        id: userId
-      }
-    } = this.context
-
     // Fetching user details
-    const user = await UserModel.findOne({
-      attributes: ['userName'],
-      where: {
-        id: userId
-      },
-      include: [{
-        model: WalletModel,
-        lock: { level: sequelizeTransaction.LOCK.UPDATE, of: WalletModel },
-        as: 'wallets',
-        where: { currencyId },
-        include: [{
-          attributes: ['code'],
-          model: CurrencyModel,
-          as: 'currency'
-        }]
-      }],
-      transaction: sequelizeTransaction
-    })
+    const user = await inMemoryDB.get('users', userId)
 
     // Validations
     if (!user) {
@@ -154,15 +48,37 @@ export default class PlinkoGamePlaceBetService extends ServiceBase {
       return
     }
 
-    const userWallet = user.wallets?.length ? user.wallets.filter(item => item.primary === true)[0] : null
-    userWallet.reload({ lock: { level: sequelizeTransaction.LOCK.UPDATE, of: WalletModel }, transaction: sequelizeTransaction })
-
+    const userWallet = user.wallet
+    
     if (userWallet.amount < +betAmount && userWallet.nonCashAmount < +betAmount) {
       this.addError('NotEnoughBalanceErrorType', `not enough balance walletAmount ${userWallet.amount} betAmount ${betAmount}`)
       return
     }
 
-    const gameSettings = (await GameSettingsService.execute({ gameId: DEFAULT_GAME_ID.PLINKO.toString() }, this.context)).result
+    const gameSettings = {
+      id: 5,
+      gameId: '5',
+      minBet: [ { coinName: 'USD', amount: '1' } ],
+      maxBet: [ { coinName: 'USD', amount: '200' } ],
+      maxProfit: [ { coinName: 'USD', amount: '5000' } ],
+      houseEdge: 4,
+      minOdds: 1,
+      maxOdds: 20,
+      minAutoRate: 0,
+      maxNumberOfAutoBets: 5,
+      createdAt: '2025-01-21T09:02:19.680Z',
+      updatedAt: '2025-03-31T09:44:40.920Z',
+      gameDetails: {
+        id: '5',
+        name: 'plinko',
+        status: true,
+        createdAt: '2025-01-21T09:02:19.638Z',
+        updatedAt: '2025-01-21T09:02:19.638Z'
+      },
+      minOdd: 1,
+      maxOdd: 20
+    }
+    
     const minBetAmount = gameSettings.minBet.filter(gameSetting => gameSetting.coinName === userWallet.currency.code)[0]
     const maxBetAmount = gameSettings.maxBet.filter(gameSetting => gameSetting.coinName === userWallet.currency.code)[0]
     const maxBetProfit = gameSettings.maxProfit.filter(gameSetting => gameSetting.coinName === userWallet.currency.code)[0]
@@ -212,9 +128,9 @@ export default class PlinkoGamePlaceBetService extends ServiceBase {
 
     const { minOdd, maxOdd, houseEdge } = gameSettings
 
-    // create debit transaction
     try {
-      const plinkoGameBet = await PlinkoGameBetModel.create({
+      const plinkoGameBet = {
+        id: uuidv4(),
         userId: userId,
         numberOfRows,
         riskLevel,
@@ -227,63 +143,58 @@ export default class PlinkoGamePlaceBetService extends ServiceBase {
         serverSeed,
         result: betResult,
         currentGameSettings: JSON.stringify({ minOdd, maxOdd, houseEdge })
-      }, {
-        include: {
-          model: UserModel,
-          as: 'user'
-        },
-        transaction: sequelizeTransaction
-      })
-
-      let isPaymentMethodBonus = false
-
-      // Updating user wallet
-      await userWallet.reload({ lock: { level: sequelizeTransaction.LOCK.UPDATE, of: WalletModel }, transaction: sequelizeTransaction })
-
-      // deduct from nonCashAmount first
-      if (userWallet.nonCashAmount >= betAmount) {
-        isPaymentMethodBonus = true
-        userWallet.nonCashAmount = minus(userWallet.nonCashAmount, betAmount)
-        WalletEmitter.emitUserWalletBalance({ ...userWallet?.toJSON(), type: 'debit', betInfo: plinkoGameBet }, userWallet.ownerId)
-
-        if (winningAmount !== 0) {
-          // userWallet.nonCashAmount = plus(userWallet.nonCashAmount, winningAmount)
-          userWallet.amount = plus(userWallet.amount, winningAmount)
-        }
-      } else {
-        userWallet.amount = minus(userWallet.amount, betAmount)
-        WalletEmitter.emitUserWalletBalance({ ...userWallet?.toJSON(), type: 'debit', betInfo: plinkoGameBet }, userWallet.ownerId)
-
-        if (winningAmount !== 0) {
-          userWallet.amount = plus(userWallet.amount, winningAmount)
-        }
       }
 
-      await userWallet.save({ transaction: sequelizeTransaction })
+      await inMemoryDB.set('plinkoGameBets', userId, plinkoGameBet)
 
-      const debitTransaction = await CreateDebitTransactionService.execute({
-        gameId: DEFAULT_GAME_ID.PLINKO,
-        userWallet,
-        betData: plinkoGameBet,
-        isPaymentMethodBonus
-      }, this.context)
+      // Updating user wallet
+      userWallet.amount = minus(userWallet.amount, betAmount)
+      WalletEmitter.emitUserWalletBalance({
+        "amount": userWallet.amount,
+        "primary": true,
+        "currencyId": "2",
+        "ownerType": "USER",
+        "ownerId": userWallet.ownerId,
+        "nonCashAmount": 0,
+        "bonusBalance": 10,
+        "walletAddress": null,
+        "createdAt": new Date(),
+        "updatedAt": new Date(),
+        "currency": {
+          "id": "2",
+          "code": "USD"
+        },
+        type: 'debit', 
+        betInfo: plinkoGameBet
+      }, userWallet.ownerId)
 
-      await CreateCreditTransactionService.execute({
-        gameId: DEFAULT_GAME_ID.PLINKO,
-        userWallet,
-        betData: plinkoGameBet,
-        debitTransaction
-      }, this.context)
+      if (winningAmount !== 0) {
+        userWallet.amount = plus(userWallet.amount, winningAmount)
+      }
+      await inMemoryDB.set('users', userId, user);
 
-      await HandleBonusWageringService.execute({ userId, userWalletId: userWallet.id, betAmount: +betAmount }, this.context)
-
-      await UpdateRankingLevelService.execute({ userId }, this.context)
-
-      WalletEmitter.emitUserWalletBalance({ ...userWallet?.toJSON(), type: 'credit', betInfo: plinkoGameBet }, userWallet.ownerId)
+      WalletEmitter.emitUserWalletBalance({
+        "amount": userWallet.amount,
+        "primary": true,
+        "currencyId": "2",
+        "ownerType": "USER",
+        "ownerId": userWallet.ownerId,
+        "nonCashAmount": 0,
+        "bonusBalance": 10,
+        "walletAddress": null,
+        "createdAt": new Date(),
+        "updatedAt": new Date(),
+        "currency": {
+          "id": "2",
+          "code": "USD"
+        },
+        type: 'credit', 
+        betInfo: plinkoGameBet 
+      }, userWallet.ownerId)
 
       const { serverSeedHash: nextServerSeedHash } = await generateServerSeedHash(userId)
 
-      return { ...plinkoGameBet.dataValues, nextServerSeedHash }
+      return { ...plinkoGameBet, nextServerSeedHash }
     } catch (error) {
       throw new APIError({ name: 'Internal', description: error.message })
     }

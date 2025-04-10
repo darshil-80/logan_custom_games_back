@@ -7,28 +7,6 @@ import PlinkoGameController from '../../../controllers/plinkoGame.controller'
 
 const plinkoGameRoutes = express.Router()
 
-const postPlaceBetSchemas = {
-  bodySchema: {
-    type: 'object',
-    properties: {
-      numberOfRows: { $ref: '/plinkoGameBet.json#/properties/numberOfRows' },
-      riskLevel: { $ref: '/plinkoGameBet.json#/properties/riskLevel' },
-      betAmount: { $ref: '/plinkoGameBet.json#/properties/betAmount' },
-      clientSeed: { $ref: '/plinkoGameBet.json#/properties/clientSeed' },
-      currencyId: { $ref: '/plinkoGameBet.json#/properties/currencyId' },
-      isLightningMode: { $ref: '/plinkoGameBet.json#/properties/isLightningMode' },
-      demo: { $ref: '/plinkoGameBet.json#/properties/demo' },
-      demoAmount: { $ref: '/plinkoGameBet.json#/properties/demoAmount' }
-    },
-    required: ['numberOfRows', 'riskLevel', 'clientSeed', 'betAmount', 'isLightningMode', 'currencyId', 'demo']
-  },
-  responseSchema: {
-    default: {
-      $ref: '/plinkoGameBet.json'
-    }
-  }
-}
-
 const getMyBetsSchemas = {
   querySchema: {
     type: 'object',
@@ -87,18 +65,18 @@ plinkoGameRoutes
 // place-bet route
 plinkoGameRoutes
   .route('/place-bet').post(
-    contextMiddleware(true),
-    authenticationMiddleWare,
-    requestValidationMiddleware(postPlaceBetSchemas),
+    // contextMiddleware(true),
+    // authenticationMiddleWare,
+    // requestValidationMiddleware(postPlaceBetSchemas),
     PlinkoGameController.placeBet,
-    responseValidationMiddleware(postPlaceBetSchemas)
+    responseValidationMiddleware()
   )
 
 // post-lightning-mode route
 plinkoGameRoutes
   .route('/lightning-board-details').post(
-    contextMiddleware(true),
-    requestValidationMiddleware(),
+    // contextMiddleware(true),
+    // requestValidationMiddleware(),
     PlinkoGameController.postLightningBoardDetails,
     responseValidationMiddleware()
   )
