@@ -21,7 +21,7 @@ export default class FlipCoinGameController {
    */
   static async placeBet (req, res, next) {
     try {
-      const { result, successful, errors } = await FlipCoinGamePlaceBetService.execute(req.body, req.context)
+      const { result, successful, errors } = await FlipCoinGamePlaceBetService.execute({ userId: req.headers.userid, ...req.body }, req.context)
       sendResponse({ req, res, next }, { result, successful, serviceErrors: errors })
     } catch (error) {
       next(error)
