@@ -2,37 +2,15 @@ import { minus, plus, times } from 'number-precision'
 import APIError from '../../../errors/api.error'
 import { generateServerSeedHash } from '../../../helpers/encryption.helpers'
 import { getCachedData } from '../../../helpers/redis.helpers'
-import ajv from '../../../libs/ajv'
 import { BET_RESULT, DEFAULT_GAME_ID } from '../../../libs/constants'
 import ServiceBase from '../../../libs/serviceBase'
 import WalletEmitter from '../../../socket-resources/emitters/wallet.emitter'
 import { calculateOdds, countOnes, getCoinOutcomeProbability } from '../../../utils/math.utils'
 import { getServerSeedCacheKey } from '../../../utils/user.utils'
-import CreateCreditTransactionService from '../common/createCreditTransaction.service'
-import CreateDebitTransactionService from '../common/createDebitTransaction.service'
 import GameSettingsService from '../common/gameSettings.service'
 import FlipCoinGameGenerateResultService from './flipCoinGameGenerateResult.service'
-import { v4 as uuid } from 'uuid'
-import UpdateRankingLevelService from '../../bonus/updateRankingLevel.service'
-import HandleBonusWageringService from '../../bonus/handleBonusWagering.service'
-
-const schema = {
-  type: 'object',
-  properties: {
-    numberOfCoins: { $ref: '/flipCoinGameBet.json#/properties/numberOfCoins' },
-    minimumChosenOutcome: { $ref: '/flipCoinGameBet.json#/properties/minimumChosenOutcome' },
-    heads: { $ref: '/flipCoinGameBet.json#/properties/heads' },
-    betAmount: { $ref: '/flipCoinGameBet.json#/properties/betAmount' },
-    clientSeed: { $ref: '/flipCoinGameBet.json#/properties/clientSeed' },
-    currencyId: { $ref: '/flipCoinGameBet.json#/properties/currencyId' },
-    demo: { type: 'boolean' },
-    demoAmount: { $ref: '/flipCoinGameBet.json#/properties/demoAmount' }
-  },
-  required: ['numberOfCoins', 'heads', 'clientSeed', 'betAmount', 'currencyId']
-}
-
-const constraints = ajv.compile(schema)
-
+import inMemoryDB from '../../../libs/inMemoryDb'
+import { v4 as uuidv4 } from 'uuid'
 /**
  *
  *
@@ -41,70 +19,53 @@ const constraints = ajv.compile(schema)
  * @extends {ServiceBase}
  */
 export default class FlipCoinGamePlaceBetService extends ServiceBase {
-  get constraints () {
-    return constraints
-  }
-
   async run () {
-    const { currencyId, numberOfCoins, heads, betAmount, clientSeed, minimumChosenOutcome, demo } = this.args
+    const { currencyId, numberOfCoins, heads, betAmount, clientSeed, minimumChosenOutcome, demo, userId } = this.args
 
-    if (demo) {
-      let { demoAmount } = this.args
-      if (!demoAmount) demoAmount = 3000
-      if (+betAmount > +demoAmount) return this.addError('NotEnoughBalanceErrorType', `not enough balance walletAmount ${demoAmount} betAmount ${betAmount}`)
-      // Roll Dice
-      const gameSettings = (await GameSettingsService.execute({ gameId: DEFAULT_GAME_ID.FLIP_COIN.toString() }, this.context)).result
+    // if (demo) {
+    //   let { demoAmount } = this.args
+    //   if (!demoAmount) demoAmount = 3000
+    //   if (+betAmount > +demoAmount) return this.addError('NotEnoughBalanceErrorType', `not enough balance walletAmount ${demoAmount} betAmount ${betAmount}`)
+    //   // Roll Dice
+    //   const gameSettings = (await GameSettingsService.execute({ gameId: DEFAULT_GAME_ID.FLIP_COIN }, this.context))
 
-      const _serverSeed = Math.random().toString(36).substring(2, 12)
-      const flipCoinGameResult = await FlipCoinGameGenerateResultService.run({ serverSeed: _serverSeed, clientSeed, numberOfCoins })
-      const ones = countOnes(flipCoinGameResult)
-      const favorable = heads ? ones : (numberOfCoins - ones)
+    //   const _serverSeed = Math.random().toString(36).substring(2, 12)
+    //   const flipCoinGameResult = await FlipCoinGameGenerateResultService.run({ serverSeed: _serverSeed, clientSeed, numberOfCoins })
+    //   const ones = countOnes(flipCoinGameResult)
+    //   const favorable = heads ? ones : (numberOfCoins - ones)
 
-      let winningAmount = 0
-      let betResult = BET_RESULT.LOST
+    //   let winningAmount = 0
+    //   let betResult = BET_RESULT.LOST
 
-      const probability = getCoinOutcomeProbability(numberOfCoins, minimumChosenOutcome)
+    //   const probability = getCoinOutcomeProbability(numberOfCoins, minimumChosenOutcome)
 
-      if (favorable >= minimumChosenOutcome) {
-        const odds = calculateOdds(gameSettings, 1 / probability)
-        betResult = BET_RESULT.WON
-        winningAmount = times(betAmount, odds)
-      }
+    //   if (favorable >= minimumChosenOutcome) {
+    //     const odds = calculateOdds(gameSettings, 1 / probability)
+    //     betResult = BET_RESULT.WON
+    //     winningAmount = times(betAmount, odds)
+    //   }
 
-      let balance = minus(demoAmount, betAmount)
+    //   let balance = minus(demoAmount, betAmount)
 
-      if (betResult === BET_RESULT.WON) {
-        balance = plus(balance, winningAmount)
-      }
+    //   if (betResult === BET_RESULT.WON) {
+    //     balance = plus(balance, winningAmount)
+    //   }
 
-      return {
-        id: uuid(),
-        outcome: flipCoinGameResult,
-        betAmount: betAmount,
-        currencyId,
-        winningAmount: winningAmount,
-        clientSeed: clientSeed,
-        serverSeed: _serverSeed,
-        result: betResult,
-        demo: true,
-        demoAmount: balance,
-        minimumChosenOutcome,
-        numberOfCoins
-      }
-    }
-
-    const {
-      dbModels: {
-        User: UserModel,
-        FlipCoinGameBet: FlipCoinGameBetModel,
-        Wallet: WalletModel,
-        Currency: CurrencyModel
-      },
-      sequelizeTransaction,
-      auth: {
-        id: userId
-      }
-    } = this.context
+    //   return {
+    //     id: uuid(),
+    //     outcome: flipCoinGameResult,
+    //     betAmount: betAmount,
+    //     currencyId,
+    //     winningAmount: winningAmount,
+    //     clientSeed: clientSeed,
+    //     serverSeed: _serverSeed,
+    //     result: betResult,
+    //     demo: true,
+    //     demoAmount: balance,
+    //     minimumChosenOutcome,
+    //     numberOfCoins
+    //   }
+    // }
 
     // numberOfCoins validation
     if (numberOfCoins < 1 || numberOfCoins > 10) {
@@ -119,24 +80,8 @@ export default class FlipCoinGamePlaceBetService extends ServiceBase {
     }
 
     // Fetching user details
-    const user = await UserModel.findOne({
-      attributes: ['userName'],
-      where: {
-        id: userId
-      },
-      include: [{
-        model: WalletModel,
-        as: 'wallets',
-        lock: { level: sequelizeTransaction.LOCK.UPDATE, of: WalletModel },
-        where: { currencyId },
-        include: [{
-          attributes: ['code'],
-          model: CurrencyModel,
-          as: 'currency'
-        }]
-      }],
-      transaction: sequelizeTransaction
-    })
+    
+    const user = await inMemoryDB.get('users', userId);
 
     // Validations
     if (!user) {
@@ -145,14 +90,15 @@ export default class FlipCoinGamePlaceBetService extends ServiceBase {
     }
 
     // const userWallet = user.wallets?.length ? user.wallets[0] : null
-    const userWallet = user.wallets?.length ? user.wallets.filter(item => item.primary === true)[0] : null
+    const userWallet = user.wallet
 
     if (userWallet.amount < +betAmount) {
       this.addError('NotEnoughBalanceErrorType', `not enough balance walletAmount ${userWallet.amount} betAmount ${betAmount}`)
       return
     }
 
-    const gameSettings = await GameSettingsService.run({ gameId: DEFAULT_GAME_ID.FLIP_COIN.toString() }, this.context)
+    const gameSettings = await GameSettingsService.run({ gameId: DEFAULT_GAME_ID.FLIP_COIN }, this.context)
+
     const minBetAmount = gameSettings.minBet.filter(gameSetting => gameSetting.coinName === userWallet.currency.code)[0]
     const maxBetAmount = gameSettings.maxBet.filter(gameSetting => gameSetting.coinName === userWallet.currency.code)[0]
     const maxBetProfit = gameSettings.maxProfit.filter(gameSetting => gameSetting.coinName === userWallet.currency.code)[0]
@@ -190,9 +136,9 @@ export default class FlipCoinGamePlaceBetService extends ServiceBase {
 
     const { minOdd, maxOdd, houseEdge } = gameSettings
 
-    // create debit transaction
     try {
-      const flipCoinGameBet = await FlipCoinGameBetModel.create({
+      const flipCoinGameBet = {
+        id: uuidv4(),
         userId: userId,
         outcome: flipCoinGameResult,
         heads,
@@ -205,62 +151,61 @@ export default class FlipCoinGamePlaceBetService extends ServiceBase {
         serverSeed,
         result: betResult,
         currentGameSettings: JSON.stringify({ minOdd, maxOdd, houseEdge })
-      }, {
-        include: [{
-          model: UserModel,
-          as: 'user'
-        }],
-        transaction: sequelizeTransaction
-      })
-
-      let isPaymentMethodBonus = false
-
-      // Updating user wallet
-      await userWallet.reload({ lock: { level: sequelizeTransaction.LOCK.UPDATE, of: WalletModel }, transaction: sequelizeTransaction })
-
-      // deduct from nonCashAmount first
-      if (userWallet.nonCashAmount >= betAmount) {
-        isPaymentMethodBonus = true
-        userWallet.nonCashAmount = minus(userWallet.nonCashAmount, betAmount)
-        WalletEmitter.emitUserWalletBalance({ ...userWallet?.toJSON(), type: 'debit', betInfo: flipCoinGameBet }, userWallet.ownerId)
-
-        if (betResult === BET_RESULT.WON) {
-          userWallet.amount = plus(userWallet.amount, winningAmount)
-        }
-      } else {
-        userWallet.amount = minus(userWallet.amount, betAmount)
-        WalletEmitter.emitUserWalletBalance({ ...userWallet?.toJSON(), type: 'debit', betInfo: flipCoinGameBet }, userWallet.ownerId)
-
-        if (betResult === BET_RESULT.WON) {
-          userWallet.amount = plus(userWallet.amount, winningAmount)
-        }
       }
 
-      await userWallet.save({ transaction: sequelizeTransaction })
+      await inMemoryDB.set('flipCoinGameBets', userId, flipCoinGameBet)
 
-      const debitTransaction = await CreateDebitTransactionService.execute({
-        gameId: DEFAULT_GAME_ID.FLIP_COIN,
-        userWallet,
-        betData: flipCoinGameBet,
-        isPaymentMethodBonus
-      }, this.context)
+      userWallet.amount = minus(userWallet.amount, betAmount)
 
-      await CreateCreditTransactionService.execute({
-        gameId: DEFAULT_GAME_ID.FLIP_COIN,
-        userWallet,
-        betData: flipCoinGameBet,
-        debitTransaction
-      }, this.context)
-      await HandleBonusWageringService.execute({ userId, userWalletId: userWallet.id, betAmount: +betAmount }, this.context)
-      await UpdateRankingLevelService.execute({ userId }, this.context)
+      WalletEmitter.emitUserWalletBalance({
+        "amount": userWallet.amount,
+        "primary": true,
+        "currencyId": "2",
+        "ownerType": "USER",
+        "ownerId": userWallet.ownerId,
+        "nonCashAmount": 0,
+        "bonusBalance": 10,
+        "walletAddress": null,
+        "createdAt": new Date(),
+        "updatedAt": new Date(),
+        "currency": {
+          "id": "2",
+          "code": "USD"
+        },
+        type: 'debit', 
+        betInfo: flipCoinGameBet
+      }, userWallet.ownerId)
 
-      WalletEmitter.emitUserWalletBalance({ ...userWallet?.toJSON(), type: 'credit', betInfo: flipCoinGameBet }, userWallet.ownerId)
+      if (betResult === BET_RESULT.WON) {
+        userWallet.amount = plus(userWallet.amount, winningAmount)
+      }
+
+      await inMemoryDB.set('users', userId, user);
+
+      WalletEmitter.emitUserWalletBalance({
+        "amount": userWallet.amount,
+        "primary": true,
+        "currencyId": "2",
+        "ownerType": "USER",
+        "ownerId": userWallet.ownerId,
+        "nonCashAmount": 0,
+        "bonusBalance": 10,
+        "walletAddress": null,
+        "createdAt": new Date(),
+        "updatedAt": new Date(),
+        "currency": {
+          "id": "2",
+          "code": "USD"
+        },
+        type: 'credit', 
+        betInfo: flipCoinGameBet
+      }, userWallet.ownerId)
 
       const { serverSeedHash: nextServerSeedHash } = await generateServerSeedHash(userId)
 
       flipCoinGameBet.nextServerSeedHash = nextServerSeedHash
 
-      return { ...flipCoinGameBet.dataValues, nextServerSeedHash }
+      return { ...flipCoinGameBet, nextServerSeedHash }
     } catch (error) {
       throw new APIError({ name: 'Internal', description: error.message })
     }

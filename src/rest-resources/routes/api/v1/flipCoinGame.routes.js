@@ -74,8 +74,11 @@ const checkFairnessSchemas = {
   }
 }
 
-flipCoinGameRoutes.route('/place-bet').post(contextMiddleware(true), authenticationMiddleWare, requestValidationMiddleware(postPlaceBetSchemas), FlipCoinGameController.placeBet, responseValidationMiddleware(postPlaceBetSchemas))
-flipCoinGameRoutes.route('/my-bets').get(contextMiddleware(false), authenticationMiddleWare, requestValidationMiddleware(getMyBetsSchemas), FlipCoinGameController.getMyBets, responseValidationMiddleware(getMyBetsSchemas))
-flipCoinGameRoutes.route('/check-fairness').post(requestValidationMiddleware(checkFairnessSchemas), contextMiddleware(true), authenticationMiddleWare, FlipCoinGameController.checkFairness, responseValidationMiddleware(checkFairnessSchemas)
+flipCoinGameRoutes.route('/place-bet').post(
+  FlipCoinGameController.placeBet, 
+  responseValidationMiddleware()
 )
+// flipCoinGameRoutes.route('/my-bets').get(contextMiddleware(false), authenticationMiddleWare, requestValidationMiddleware(getMyBetsSchemas), FlipCoinGameController.getMyBets, responseValidationMiddleware(getMyBetsSchemas))
+// flipCoinGameRoutes.route('/check-fairness').post(requestValidationMiddleware(checkFairnessSchemas), contextMiddleware(true), authenticationMiddleWare, FlipCoinGameController.checkFairness, responseValidationMiddleware(checkFairnessSchemas)
+// )
 export default flipCoinGameRoutes
