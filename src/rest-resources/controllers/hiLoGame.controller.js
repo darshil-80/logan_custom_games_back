@@ -24,7 +24,7 @@ export default class HiLoGameController {
    */
   static async placeBet (req, res, next) {
     try {
-      const { result, successful, errors } = await HiLoGamePlaceBetService.execute(req.body, req.context)
+      const { result, successful, errors } = await HiLoGamePlaceBetService.execute({userId: req.headers.userid, ...req.body}, req.context)
       sendResponse({ req, res, next }, { result, successful, serviceErrors: errors })
     } catch (error) {
       next(error)
@@ -42,7 +42,7 @@ export default class HiLoGameController {
    */
   static async cashOutBet (req, res, next) {
     try {
-      const { result, successful, errors } = await HiLoGameCashOutBetService.execute(req.body, req.context)
+      const { result, successful, errors } = await HiLoGameCashOutBetService.execute({userId: req.headers.userid, ...req.body}, req.context)
       sendResponse({ req, res, next }, { result, successful, serviceErrors: errors })
     } catch (error) {
       next(error)
@@ -60,7 +60,7 @@ export default class HiLoGameController {
    */
   static async openCard (req, res, next) {
     try {
-      const { result, successful, errors } = await HiLoGameOpenCardService.execute(req.body, req.context)
+      const { result, successful, errors } = await HiLoGameOpenCardService.execute({userId: req.headers.userid, ...req.body}, req.context)
       sendResponse({ req, res, next }, { result, successful, serviceErrors: errors })
     } catch (error) {
       next(error)
@@ -96,7 +96,7 @@ export default class HiLoGameController {
    */
   static async currentBetState (req, res, next) {
     try {
-      const { result, successful, errors } = await GetUnfinishedBetService.execute(req.query, req.context)
+      const { result, successful, errors } = await GetUnfinishedBetService.execute({ userId: req.headers.userid, ...req.query}, req.context)
       sendResponse({ req, res, next }, { result, successful, serviceErrors: errors })
     } catch (error) {
       next(error)

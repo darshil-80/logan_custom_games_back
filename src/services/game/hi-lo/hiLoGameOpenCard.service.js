@@ -8,7 +8,8 @@ import HiLoGameCalculateOddsForBet from './hiloGameCalculateOddsForBet.service'
 import Flatted from 'flatted'
 import { calculateOdds } from '../../../utils/math.utils'
 import GameSettingsService from '../common/gameSettings.service'
-
+import inMemoryDB from '../../../libs/inMemoryDb'
+import { v4 as uuidv4 } from 'uuid'
 /**
  *
  *
@@ -18,48 +19,17 @@ import GameSettingsService from '../common/gameSettings.service'
  */
 export default class HiLoGameOpenCardService extends ServiceBase {
   async run () {
-    const { currencyId } = this.args
-    const {
-      dbModels: {
-        User: UserModel,
-        HiLoGameBet: HiLoGameBetModel,
-        HiLoGameBetState: HiLoGameBetStateModel
-      },
-      sequelizeTransaction,
-      auth: {
-        id: userId
-      }
-    } = this.context
+    const { currencyId, userId } = this.args
 
     // Fetching user details
-    const user = await UserModel.findOne({
-      where: { id: userId },
-      transaction: sequelizeTransaction
-    })
+    const user = await inMemoryDB.get('users', userId);
 
     // Validations
     if (!user) return this.addError('NoUserFoundErrorType', `no user found ${userId}`)
 
-    const hiLoGameBet = await HiLoGameBetModel.findOne({
-      where: {
-        userId,
-        result: null
-      },
-      include: {
-        model: HiLoGameBetStateModel,
-        as: 'betStates'
-      },
-      order: [
-        [{ model: HiLoGameBetStateModel, as: 'betStates' }, 'id', 'ASC']
-      ],
-      lock: {
-        level: sequelizeTransaction.LOCK.UPDATE,
-        of: HiLoGameBetModel
-      },
-      transaction: sequelizeTransaction
-    })
+    const hiLoGameBet = await inMemoryDB.get('hiloGameBets', userId)
 
-    if (!hiLoGameBet) return this.addError('NoPlacedBetFoundErrorType', `no user found ${userId}`)
+    if (!hiLoGameBet || hiLoGameBet.result !== null) return this.addError('NoPlacedBetFoundErrorType', `no user found ${userId}`)
 
     const cardNumber = await HiLoGameGenerateResultService.run({
       clientSeed: `${hiLoGameBet.clientSeed}-${hiLoGameBet.betStates?.length || 0}`,
@@ -91,40 +61,32 @@ export default class HiLoGameOpenCardService extends ServiceBase {
     }
 
     try {
-      const betState = await HiLoGameBetStateModel.create({
+      const betStateId = uuidv4()
+      hiLoGameBet.betStates.push({
+        id: betStateId,
         betId: hiLoGameBet.id,
         betType: this.args.betType,
         openedCard: cardNumber
-      }, {
-        transaction: sequelizeTransaction
       })
 
-      await hiLoGameBet.reload({
-        lock: { level: sequelizeTransaction, of: HiLoGameBetModel },
-        transaction: sequelizeTransaction
-      })
+      await inMemoryDB.set('hiloGameBets', userId, hiLoGameBet)
 
       hiLoGameBet.result = win ? BET_RESULT.WON : BET_RESULT.LOST
-      const gameSettings = (await GameSettingsService.execute({ gameId: DEFAULT_GAME_ID.HILO.toString() }, this.context)).result
-      console.log('Hilo game bets  =>', { bet: Flatted.parse(Flatted.stringify(hiLoGameBet)) })
+      const gameSettings = (await GameSettingsService.execute({ gameId: DEFAULT_GAME_ID.HILO }, this.context)).result
+
       let odds = await HiLoGameCalculateOddsForBet.run({ bet: Flatted.parse(Flatted.stringify(hiLoGameBet)) }, this.context)
       odds = calculateOdds(gameSettings, odds)
-
-      await betState.set({ coefficient: odds }).save({ transaction: sequelizeTransaction })
-      await hiLoGameBet.reload({
-        lock: { level: sequelizeTransaction, of: HiLoGameBetModel },
-        transaction: sequelizeTransaction
+      
+      hiLoGameBet.betStates.forEach(betState => {
+        if(betState.id === betStateId) {
+          betState.coefficient = odds
+        }
       })
 
+      hiLoGameBet.result = null;
       if (!win) {
-        await HiLoGameCashOutBetService.run({ currencyId, result: win ? BET_RESULT.WON : BET_RESULT.LOST }, this.context)
-        await hiLoGameBet.reload({
-          lock: {
-            level: sequelizeTransaction,
-            of: HiLoGameBetModel
-          },
-          transaction: sequelizeTransaction
-        })
+        await HiLoGameCashOutBetService.run({ userId, currencyId, result: win ? BET_RESULT.WON : BET_RESULT.LOST }, this.context)
+        hiLoGameBet.result = win ? BET_RESULT.WON : BET_RESULT.LOST;
       }
 
       if (!win) hiLoGameBet.nextServerSeedHash = await generateServerSeedHash(userId)
@@ -132,7 +94,10 @@ export default class HiLoGameOpenCardService extends ServiceBase {
 
       hiLoGameBet.newCard = cardNumber
 
-      return hiLoGameBet
+      await inMemoryDB.set('hiloGameBets', userId, hiLoGameBet)
+      const updatedHiLoGameBet = await inMemoryDB.get('hiloGameBets', userId)
+
+      return updatedHiLoGameBet
     } catch (error) {
       throw new APIError({ name: 'Internal', description: error.message })
     }

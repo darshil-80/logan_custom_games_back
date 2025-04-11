@@ -1,15 +1,14 @@
 import APIError from '../../../errors/api.error'
 import { minus } from 'number-precision'
 import ServiceBase from '../../../libs/serviceBase'
-import GameSettingsService from '../common/gameSettings.service'
 import { getCachedData } from '../../../helpers/redis.helpers'
-import { DEFAULT_GAME_ID } from '../../../libs/constants'
 import WalletEmitter from '../../../socket-resources/emitters/wallet.emitter'
-import CreateDebitTransactionService from '../common/createDebitTransaction.service'
 import { getServerSeedCacheKey } from '../../../utils/user.utils'
 import { generateServerSeedHash } from '../../../helpers/encryption.helpers'
-import UpdateRankingLevelService from '../../bonus/updateRankingLevel.service'
-import HandleBonusWageringService from '../../bonus/handleBonusWagering.service'
+import inMemoryDB from '../../../libs/inMemoryDb'
+import { v4 as uuidv4 } from 'uuid'
+import { DEFAULT_GAME_ID } from '../../../libs/constants'
+import GameSettingsService from '../common/gameSettings.service'
 
 /**
  *
@@ -20,40 +19,10 @@ import HandleBonusWageringService from '../../bonus/handleBonusWagering.service'
  */
 export default class HiLoGamePlaceBetService extends ServiceBase {
   async run () {
-    const { initialCard, betAmount, clientSeed, currencyId } = this.args
-
-    const {
-      dbModels: {
-        User: UserModel,
-        HiLoGameBet: HiLoGameBetModel,
-        Wallet: WalletModel,
-        Currency: CurrencyModel
-      },
-      sequelizeTransaction,
-      auth: {
-        id: userId
-      }
-    } = this.context
+    const { initialCard, betAmount, clientSeed, currencyId, userId } = this.args
 
     // Fetching user details
-    const user = await UserModel.findOne({
-      attributes: ['userName'],
-      where: {
-        id: userId
-      },
-      include: [{
-        model: WalletModel,
-        as: 'wallets',
-        lock: { level: sequelizeTransaction.LOCK.UPDATE, of: WalletModel },
-        where: { currencyId },
-        include: [{
-          attributes: ['code'],
-          model: CurrencyModel,
-          as: 'currency'
-        }]
-      }],
-      transaction: sequelizeTransaction
-    })
+    const user = await inMemoryDB.get('users', userId);
 
     // Validations
     if (!user) {
@@ -62,24 +31,20 @@ export default class HiLoGamePlaceBetService extends ServiceBase {
     }
 
     // const userWallet = user.wallets?.length ? user.wallets.filter(item => item.primary)[0] : null
-    const userWallet = user.wallets?.length ? user.wallets.filter(item => item.primary === true)[0] : null
+    const userWallet = user.wallet
 
-    if (userWallet.amount < +betAmount && userWallet.nonCashAmount < +betAmount) {
+    if (userWallet.amount < +betAmount) {
       this.addError('NotEnoughBalanceErrorType', `not enough balance walletAmount ${userWallet.amount} betAmount ${betAmount}`)
       return
     }
 
     // INFO: Prevent bet if a bet is already open
-    const previousOpenBet = await HiLoGameBetModel.findOne({
-      where: {
-        userId,
-        result: null
-      }
-    })
+    const previousOpenBet = await inMemoryDB.get('hiloGameBets', userId)
 
-    if (previousOpenBet) return this.addError('PreviousOpenBetExistErrorType')
+    if (previousOpenBet && previousOpenBet.result === null) return this.addError('PreviousOpenBetExistErrorType')
 
-    const gameSettings = (await GameSettingsService.execute({ gameId: DEFAULT_GAME_ID.HILO.toString() }, this.context)).result
+    const gameSettings = (await GameSettingsService.execute({ gameId: DEFAULT_GAME_ID.HILO }, this.context)).result
+
     const minBetAmount = gameSettings.minBet.filter(gameSetting => gameSetting.coinName === userWallet.currency.code)[0]
     const maxBetAmount = gameSettings.maxBet.filter(gameSetting => gameSetting.coinName === userWallet.currency.code)[0]
 
@@ -93,59 +58,48 @@ export default class HiLoGamePlaceBetService extends ServiceBase {
 
     const { minOdd, maxOdd, houseEdge } = gameSettings
 
-    // create debit transaction
     try {
-      const hiLoGameBet = await HiLoGameBetModel.create({
+      const hiLoGameBet = {
+        id: uuidv4(),
         userId: userId,
         initialCard,
         betAmount,
         currencyId,
         clientSeed: clientSeed,
         serverSeed,
-        currentGameSettings: JSON.stringify({ minOdd, maxOdd, houseEdge })
-      }, {
-        include: {
-          model: UserModel,
-          as: 'user'
-        },
-        transaction: sequelizeTransaction
-      })
-
-      let isPaymentMethodBonus = false
-
-      // Updating user wallet
-      await userWallet.reload({ lock: { level: sequelizeTransaction.LOCK.UPDATE, of: WalletModel }, transaction: sequelizeTransaction })
-
-      // deduct from nonCashAmount first
-      if (userWallet.nonCashAmount >= betAmount) {
-        isPaymentMethodBonus = true
-        userWallet.nonCashAmount = minus(userWallet.nonCashAmount, betAmount)
-        WalletEmitter.emitUserWalletBalance(userWallet?.toJSON(), userWallet.ownerId)
-      } else {
-        userWallet.amount = minus(userWallet.amount, betAmount)
-        WalletEmitter.emitUserWalletBalance(userWallet?.toJSON(), userWallet.ownerId)
+        result: null,
+        currentGameSettings: JSON.stringify({ minOdd, maxOdd, houseEdge }),
+        betStates: []
       }
 
-      await userWallet.save({ transaction: sequelizeTransaction })
+      await inMemoryDB.set('hiloGameBets', userId, hiLoGameBet)
 
-      await CreateDebitTransactionService.execute({
-        gameId: DEFAULT_GAME_ID.HILO,
-        userWallet,
-        betData: hiLoGameBet,
-        isPaymentMethodBonus
-      }, this.context)
+      // Updating user wallet
+      userWallet.amount = minus(userWallet.amount, betAmount)
+      WalletEmitter.emitUserWalletBalance({
+        "amount": userWallet.amount,
+        "primary": true,
+        "currencyId": "2",
+        "ownerType": "USER",
+        "ownerId": userWallet.ownerId,
+        "nonCashAmount": 0,
+        "bonusBalance": 10,
+        "walletAddress": null,
+        "createdAt": new Date(),
+        "updatedAt": new Date(),
+        "currency": {
+          "id": "2",
+          "code": "USD"
+        },
+      }, userWallet.ownerId)
 
-      await HandleBonusWageringService.execute({ userId, userWalletId: userWallet.id, betAmount: +betAmount }, this.context)
-
-      await UpdateRankingLevelService.execute({ userId }, this.context)
-      console.log("wallet---------->>", userWallet?.toJSON(), userWallet.ownerId)
-      WalletEmitter.emitUserWalletBalance(userWallet?.toJSON(), userWallet.ownerId)
+      await inMemoryDB.set('users', userId, user);
 
       const { serverSeedHash: nextServerSeedHash } = await generateServerSeedHash(userId)
 
       hiLoGameBet.nextServerSeedHash = nextServerSeedHash
 
-      return { ...hiLoGameBet.dataValues, nextServerSeedHash }
+      return { ...hiLoGameBet, nextServerSeedHash }
     } catch (error) {
       throw new APIError({ name: 'Internal', description: error.message })
     }

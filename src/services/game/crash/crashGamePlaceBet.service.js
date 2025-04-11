@@ -25,7 +25,6 @@ export default class CrashGamePlaceBetService extends ServiceBase {
       return
     }
 
-    // const userWallet = user.wallets?.length ? user.wallets[0] : null
     const userWallet = user.wallet
 
     if (userWallet.amount < +betAmount) {
@@ -33,30 +32,7 @@ export default class CrashGamePlaceBetService extends ServiceBase {
       return
     }
 
-    // const gameSettings = await GameSettingsService.execute({ gameId: DEFAULT_GAME_ID.CRASH }, this.context)
-    const gameSettings = {
-      id: 1,
-      gameId: '1',
-      minBet: [ { coinName: 'USD', amount: 1 } ],
-      maxBet: [ { coinName: 'USD', amount: 20 } ],
-      maxProfit: [ { coinName: 'USD', amount: 50 } ],
-      houseEdge: 4,
-      minOdds: 1,
-      maxOdds: 20,
-      minAutoRate: 1.01,
-      maxNumberOfAutoBets: 50,
-      createdAt: '2025-01-21T09:02:19.680Z',
-      updatedAt: '2025-01-30T11:22:53.615Z',
-      gameDetails: {
-        id: '1',
-        name: 'crash',
-        status: true,
-        createdAt: '2025-01-21T09:02:19.638Z',
-        updatedAt: '2025-01-21T09:02:19.638Z'
-      },
-      minOdd: 1,
-      maxOdd: 20
-    }
+    const gameSettings = (await GameSettingsService.execute({ gameId: DEFAULT_GAME_ID.CRASH }, this.context)).result
 
     const minBetAmount = gameSettings.minBet.filter(gameSetting => gameSetting.coinName === userWallet.currency.code)[0]
     const maxBetAmount = gameSettings.maxBet.filter(gameSetting => gameSetting.coinName === userWallet.currency.code)[0]
@@ -80,7 +56,11 @@ export default class CrashGamePlaceBetService extends ServiceBase {
     }
 
     const PlacedBets = await inMemoryDB.findAllByField('crashGameBets', 'roundId', currentRound.roundId)
-    const alreadyPlacedBets = PlacedBets.filter(bet => bet.userId === userId);
+    const alreadyPlacedBets = PlacedBets.filter(bet => {
+      if(bet.userId === userId && bet.result === null) {
+        return bet
+      }
+    });
 
     if (alreadyPlacedBets && alreadyPlacedBets.length) {
       return alreadyPlacedBets[0]
