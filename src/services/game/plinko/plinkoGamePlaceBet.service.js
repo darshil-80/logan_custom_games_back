@@ -55,29 +55,7 @@ export default class PlinkoGamePlaceBetService extends ServiceBase {
       return
     }
 
-    const gameSettings = {
-      id: 5,
-      gameId: '5',
-      minBet: [ { coinName: 'USD', amount: '1' } ],
-      maxBet: [ { coinName: 'USD', amount: '200' } ],
-      maxProfit: [ { coinName: 'USD', amount: '5000' } ],
-      houseEdge: 4,
-      minOdds: 1,
-      maxOdds: 20,
-      minAutoRate: 0,
-      maxNumberOfAutoBets: 5,
-      createdAt: '2025-01-21T09:02:19.680Z',
-      updatedAt: '2025-03-31T09:44:40.920Z',
-      gameDetails: {
-        id: '5',
-        name: 'plinko',
-        status: true,
-        createdAt: '2025-01-21T09:02:19.638Z',
-        updatedAt: '2025-01-21T09:02:19.638Z'
-      },
-      minOdd: 1,
-      maxOdd: 20
-    }
+    const gameSettings = (await GameSettingsService.execute({ gameId: DEFAULT_GAME_ID.PLINKO }, this.context)).result
     
     const minBetAmount = gameSettings.minBet.filter(gameSetting => gameSetting.coinName === userWallet.currency.code)[0]
     const maxBetAmount = gameSettings.maxBet.filter(gameSetting => gameSetting.coinName === userWallet.currency.code)[0]
