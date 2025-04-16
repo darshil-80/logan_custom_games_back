@@ -28,9 +28,9 @@ const opts = {
   }
 }
 
-export const crashGameBetResolverQueue = new Bull('CrashGameBetResolver-Queue', {
+export const crashGameBetResolverQueue = new Bull('Demo-CrashGameBetResolver-Queue', {
   ...opts
 })
 
-export const JOB_CRASH_GAME_AUTO_ESCAPE_BETS = 'CrashGameAutoEscapeBets'
-export const JOB_CRASH_GAME_RESOLVE_ALL_BETS = 'CrashGameResolveAllBets'
+export const JOB_CRASH_GAME_AUTO_ESCAPE_BETS = 'Demo-CrashGameAutoEscapeBets'
+export const JOB_CRASH_GAME_RESOLVE_ALL_BETS = 'Demo-CrashGameResolveAllBets'
