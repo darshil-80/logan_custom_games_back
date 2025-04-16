@@ -3,7 +3,7 @@
 export const SOCKET_NAMESPACES = {
   DEMO: '/demo',
   WALLET: '/wallet',
-  CRASH_GAME: '/crash-game',
+  CRASH_GAME: '/demo-crash-game',
   LIVE_WINS: '/live-wins',
   LIVE_CHATS: '/live-chats',
   ROLLER_COASTER_GAME: '/roller-coaster-game',
