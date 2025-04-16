@@ -27,14 +27,14 @@ const opts = {
   }
 }
 
-export const crashGameQueue = new Bull('CrashGame-Queue', {
+export const crashGameQueue = new Bull('Demo-CrashGame-Queue', {
   ...opts
 })
 
-export const JOB_CRASH_GAME_START_ROUND = 'CrashGameStartRound'
-export const JOB_CRASH_GAME_START_TIMER = 'CrashGameStartTimer'
-export const JOB_CRASH_GAME_SET_BETTING_ON_HOLD = 'CrashGameSetBettingOnHold'
-export const JOB_CRASH_GAME_START_GRAPH_TIMER = 'CrashGameStartGraphTimer'
-export const JOB_CRASH_GAME_STOP_ROUND_GRAPH = 'CrashGameStopRoundGraph'
-export const JOB_CRASH_GAME_STOP_ROUND = 'CrashGameStopRound'
-export const JOB_RESTART_CRASH_GAME = 'RestartCrashGame'
+export const JOB_CRASH_GAME_START_ROUND = 'Demo-CrashGameStartRound'
+export const JOB_CRASH_GAME_START_TIMER = 'Demo-CrashGameStartTimer'
+export const JOB_CRASH_GAME_SET_BETTING_ON_HOLD = 'Demo-CrashGameSetBettingOnHold'
+export const JOB_CRASH_GAME_START_GRAPH_TIMER = 'Demo-CrashGameStartGraphTimer'
+export const JOB_CRASH_GAME_STOP_ROUND_GRAPH = 'Demo-CrashGameStopRoundGraph'
+export const JOB_CRASH_GAME_STOP_ROUND = 'Demo-CrashGameStopRound'
+export const JOB_RESTART_CRASH_GAME = 'Demo-RestartCrashGame'
